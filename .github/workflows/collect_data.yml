@@ -52,6 +52,6 @@ jobs:
       run: |
         git config --global user.name 'AgroMonitor Bot'
         git config --global user.email 'bot@agromonitor.com'
-        git add data/ quota_tracker.json
+        git add -f data/ quota_tracker.json .gitignore
         git commit -m "Auto: Update Copernicus data and maps [skip ci]" || exit 0
         git push

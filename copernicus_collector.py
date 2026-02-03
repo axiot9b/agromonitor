@@ -32,7 +32,7 @@ import requests
 # ============================================================
 # CONFIGURACIÓN OPENWEATHER
 # ============================================================
-OWM_API_KEY = "ca45f79113069e3524b4877bebe6e0dd"
+OWM_API_KEY = os.environ.get("OWM_API_KEY", "ca45f79113069e3524b4877bebe6e0dd")
 OWM_URL = "https://api.openweathermap.org/data/2.5/weather"
 
 # ============================================================

@@ -35,6 +35,7 @@ jobs:
         SH_CLIENT_SECRET: ${{ secrets.SH_CLIENT_SECRET }}
         CDS_API_URL: ${{ secrets.CDS_API_URL }}
         CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
+        OWM_API_KEY: ${{ secrets.OWM_API_KEY }}
         DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: |
         # Generar db_config.py dinámicamente para evitar subir credenciales al repo

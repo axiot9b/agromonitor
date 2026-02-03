@@ -7,12 +7,16 @@ services:
     name: agromonitor-collector
     runtime: python
     schedule: "0 * * * *"  # Cada hora en el minuto 0
-    buildCommand: pip install requests psycopg2-binary
-    startCommand: python agro_data_collector_github.py
+    buildCommand: pip install sentinelhub-py cdsapi pandas requests psycopg2-binary pillow
+    startCommand: python copernicus_collector.py economic
     envVars:
       - key: DATABASE_URL
         sync: false
-      - key: AGROMONITORING_API_KEY
+      - key: SH_CLIENT_ID
         sync: false
-      - key: POLYGON_ID
+      - key: SH_CLIENT_SECRET
+        sync: false
+      - key: CDS_API_URL
+        sync: false
+      - key: CDS_API_KEY
         sync: false

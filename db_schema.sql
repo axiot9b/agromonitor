@@ -43,6 +43,8 @@ CREATE TABLE IF NOT EXISTS ndvi_data (
     ndvi_max DECIMAL(6,4),
     ndvi_std DECIMAL(6,4),
     ndwi_mean DECIMAL(6,4),
+    ndsi_mean DECIMAL(6,4),
+    ndsi_interpretation VARCHAR(50),
     cloud_coverage DECIMAL(5,2),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

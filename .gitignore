@@ -16,6 +16,8 @@ logs/
 # Archivos con credenciales (IMPORTANTE: no subir)
 .env
 db_config.py
+sentinel_config.json
+.cdsapirc
 
 # IDE
 .vscode/

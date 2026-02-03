@@ -1,42 +1,46 @@
-# AgroMonitor - GitHub Actions Workflow
-# Ejecuta el recolector de datos cada hora automáticamente
-
-name: AgroMonitor Data Collector
+name: Collect Copernicus Data
 
 on:
   schedule:
-    # Ejecutar cada hora (minuto 0 de cada hora)
-    - cron: '0 * * * *'
-  
-  # Permitir ejecución manual desde GitHub
-  workflow_dispatch:
+    # Horarios (UTC) para Panamá (UTC-5):
+    # 09:00 UTC = 04:00 AM Panamá (Madrugada)
+    # 15:00 UTC = 10:00 AM Panamá (Mañana - Paso de Satélite)
+    # 23:00 UTC = 06:00 PM Panamá (Tarde/Noche)
+    - cron: '0 9,15,23 * * *'
+  workflow_dispatch:  # Permite ejecución manual
 
 jobs:
   collect-data:
     runs-on: ubuntu-latest
     
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v3
       
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.11'
-      
-      - name: Install dependencies
-        run: |
-          python -m pip install --upgrade pip
-          pip install requests psycopg2-binary
-      
-      - name: Run data collector
-        env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          AGROMONITORING_API_KEY: ${{ secrets.AGROMONITORING_API_KEY }}
-          POLYGON_ID: ${{ secrets.POLYGON_ID }}
-        run: |
-          python agro_data_collector_github.py
-      
-      - name: Log completion
-        run: |
-          echo "Data collection completed at $(date)"
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+        
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install sentinelhub-py cdsapi pandas pillow requests
+        
+    - name: Run Copernicus Collector
+      env:
+        SH_CLIENT_ID: ${{ secrets.SH_CLIENT_ID }}
+        SH_CLIENT_SECRET: ${{ secrets.SH_CLIENT_SECRET }}
+        CDS_API_URL: ${{ secrets.CDS_API_URL }}
+        CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
+      run: |
+        # Ejecutar en modo NORMAL (completo) ya que tenemos cuota suficiente (30k)
+        python copernicus_collector.py normal
+        
+    - name: Commit and Push changes
+      run: |
+        git config --global user.name 'AgroMonitor Bot'
+        git config --global user.email 'bot@agromonitor.com'
+        git add data/ quota_tracker.json
+        git commit -m "Auto: Update Copernicus data and maps [skip ci]" || exit 0
+        git push

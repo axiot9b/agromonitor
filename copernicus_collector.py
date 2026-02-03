@@ -200,6 +200,14 @@ def load_sentinel_config():
     config.sh_base_url = "https://sh.dataspace.copernicus.eu"
     config.sh_token_url = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
     
+    # DEBUG: Ver qué variables hay (sin mostrar valores completos)
+    env_vars = list(os.environ.keys())
+    print(f"[DEBUG] Variables de entorno disponibles: {len(env_vars)}")
+    if 'SH_CLIENT_ID' in os.environ:
+        print(f"[DEBUG] SH_CLIENT_ID found: {os.environ['SH_CLIENT_ID'][:4]}...")
+    else:
+        print("[DEBUG] SH_CLIENT_ID NOT found in environment")
+
     # 2. Credenciales desde Variables de Entorno (Prioridad)
     if os.environ.get('SH_CLIENT_ID') and os.environ.get('SH_CLIENT_SECRET'):
         config.sh_client_id = os.environ['SH_CLIENT_ID']

@@ -189,6 +189,40 @@ def print_quota_status():
     print("="*60 + "\n")
 
 # ============================================================
+# CONFIGURACIÓN SENTINEL HUB / COPERNICUS
+# ============================================================
+
+def load_sentinel_config():
+    """Carga configuración de Copernicus Data Space"""
+    config = SHConfig()
+    
+    # 1. URLs para Copernicus Data Space
+    config.sh_base_url = "https://sh.dataspace.copernicus.eu"
+    config.sh_token_url = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
+    
+    # 2. Credenciales desde Variables de Entorno (Prioridad)
+    if os.environ.get('SH_CLIENT_ID') and os.environ.get('SH_CLIENT_SECRET'):
+        config.sh_client_id = os.environ['SH_CLIENT_ID']
+        config.sh_client_secret = os.environ['SH_CLIENT_SECRET']
+        print("[CONFIG] Usando credenciales de variables de entorno")
+    else:
+        # 3. Credenciales desde archivo JSON (Fallback local)
+        config_file = os.path.join(os.path.dirname(__file__), 'sentinel_config.json')
+        if os.path.exists(config_file):
+            try:
+                with open(config_file, 'r') as f:
+                    creds = json.load(f)
+                    config.sh_client_id = creds.get('client_id', '')
+                    config.sh_client_secret = creds.get('client_secret', '')
+                print(f"[CONFIG] Cargada configuración desde {config_file}")
+            except Exception as e:
+                print(f"[WARN] Error leyendo config file: {e}")
+        else:
+            print("[WARN] No se encontraron credenciales (Env vars o archivo)")
+            
+    return config
+
+# ============================================================
 # CONFIGURACIÓN
 # ============================================================
 

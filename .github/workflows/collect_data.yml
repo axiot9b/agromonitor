@@ -33,7 +33,18 @@ jobs:
         SH_CLIENT_SECRET: ${{ secrets.SH_CLIENT_SECRET }}
         CDS_API_URL: ${{ secrets.CDS_API_URL }}
         CDS_API_KEY: ${{ secrets.CDS_API_KEY }}
+        DATABASE_URL: ${{ secrets.DATABASE_URL }}
       run: |
+        # Generar db_config.py dinámicamente para evitar subir credenciales al repo
+        echo "import os" > db_config.py
+        echo "import psycopg2" >> db_config.py
+        echo "def get_connection():" >> db_config.py
+        echo "    try:" >> db_config.py
+        echo "        return psycopg2.connect(os.environ['DATABASE_URL'])" >> db_config.py
+        echo "    except Exception as e:" >> db_config.py
+        echo "        print(f'DB Error: {e}')" >> db_config.py
+        echo "        return None" >> db_config.py
+        
         # Ejecutar en modo NORMAL (completo) ya que tenemos cuota suficiente (30k)
         python copernicus_collector.py normal
         

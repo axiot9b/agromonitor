@@ -34,7 +34,9 @@
         }
     },
     "api": {
-        "nota": "Agrega tu API Key de Agromonitoring aquí",
+        "nota": "API Keys para el sistema",
+        "agromonitoring_key": "6892cb4b5a99f53f4a0927d98cf05d61",
+        "openweather_key": "ca45f79113069e3524b4877bebe6e0dd",
         "api_key": "6892cb4b5a99f53f4a0927d98cf05d61"
     }
 }

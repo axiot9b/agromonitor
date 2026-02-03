@@ -245,32 +245,7 @@ FARM_COORDS = {
 }
 
 # Cargar configuración para Copernicus Data Space
-def load_sentinel_config():
-    """Carga configuración de Copernicus Data Space (dataspace.copernicus.eu)"""
-    config = SHConfig()
-    
-    # URLs para Copernicus Data Space Ecosystem (CDSE)
-    config.sh_base_url = "https://sh.dataspace.copernicus.eu"
-    config.sh_auth_base_url = "https://identity.dataspace.copernicus.eu"
-    config.sh_token_url = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
-    
-    # Intentar cargar desde archivo
-    config_file = os.path.join(os.path.dirname(__file__), 'sentinel_config.json')
-    if os.path.exists(config_file):
-        with open(config_file, 'r') as f:
-            sentinel_creds = json.load(f)
-            config.sh_client_id = sentinel_creds.get('client_id', '')
-            config.sh_client_secret = sentinel_creds.get('client_secret', '')
-    
-    # O desde variables de entorno
-    if os.environ.get('SH_CLIENT_ID'):
-        config.sh_client_id = os.environ['SH_CLIENT_ID']
-        config.sh_client_secret = os.environ['SH_CLIENT_SECRET']
-    
-    # Guardar configuración
-    config.save("cdse")
-    
-    return config
+
 
 # DataCollection para CDSE (Copernicus Data Space Ecosystem)
 def get_cdse_sentinel2_collection():

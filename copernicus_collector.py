@@ -200,14 +200,6 @@ def load_sentinel_config():
     config.sh_base_url = "https://sh.dataspace.copernicus.eu"
     config.sh_token_url = "https://identity.dataspace.copernicus.eu/auth/realms/CDSE/protocol/openid-connect/token"
     
-    # DEBUG: Ver qué variables hay (sin mostrar valores completos)
-    env_vars = list(os.environ.keys())
-    print(f"[DEBUG] Variables de entorno disponibles: {len(env_vars)}")
-    if 'SH_CLIENT_ID' in os.environ:
-        print(f"[DEBUG] SH_CLIENT_ID found: {os.environ['SH_CLIENT_ID'][:4]}...")
-    else:
-        print("[DEBUG] SH_CLIENT_ID NOT found in environment")
-
     # 2. Credenciales desde Variables de Entorno (Prioridad)
     if os.environ.get('SH_CLIENT_ID') and os.environ.get('SH_CLIENT_SECRET'):
         config.sh_client_id = os.environ['SH_CLIENT_ID']
@@ -436,6 +428,56 @@ def get_weather_data():
         
     except Exception as e:
         print(f"[ERROR] OpenWeather API: {e}")
+        return None
+
+# ============================================================
+# OPEN-METEO API - DATOS DE SUELO (GRATIS)
+# ============================================================
+
+def get_soil_data():
+    """
+    Obtiene datos de suelo via Open-Meteo API (gratis, sin API key)
+    - Temperatura del suelo a 0cm y 6cm
+    - Humedad del suelo a 0-1cm y 1-3cm
+    """
+    print(f"\n[Open-Meteo] Consultando datos de suelo...")
+    try:
+        url = "https://api.open-meteo.com/v1/forecast"
+        params = {
+            'latitude': FARM_COORDS['lat'],
+            'longitude': FARM_COORDS['lon'],
+            'current': 'soil_temperature_0cm,soil_temperature_6cm,soil_moisture_0_to_1cm,soil_moisture_1_to_3cm',
+            'timezone': 'America/Panama'
+        }
+        
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        data = response.json()
+        
+        current = data.get('current', {})
+        
+        # Temperatura promedio (0cm y 6cm)
+        temp_0 = current.get('soil_temperature_0cm', 0)
+        temp_6 = current.get('soil_temperature_6cm', 0)
+        soil_temp = (temp_0 + temp_6) / 2 if temp_0 and temp_6 else temp_0 or temp_6
+        
+        # Humedad promedio (0-1cm y 1-3cm) - viene en m3/m3
+        moist_0 = current.get('soil_moisture_0_to_1cm', 0)
+        moist_1 = current.get('soil_moisture_1_to_3cm', 0)
+        soil_moisture = (moist_0 + moist_1) / 2 if moist_0 and moist_1 else moist_0 or moist_1
+        soil_moisture_percent = soil_moisture * 100  # Convertir a porcentaje
+        
+        soil = {
+            'soil_temp_c': round(soil_temp, 2),
+            'soil_moisture': round(soil_moisture, 4),
+            'soil_moisture_percent': round(soil_moisture_percent, 2)
+        }
+        
+        print(f"[OK] Suelo: {soil['soil_temp_c']}C, {soil['soil_moisture_percent']}% humedad")
+        return soil
+        
+    except Exception as e:
+        print(f"[ERROR] Open-Meteo API: {e}")
         return None
 
 # ============================================================
@@ -944,6 +986,21 @@ def save_results(results):
                     0.0 # Cloud coverage placeholder
                 ))
             
+            # Insertar Suelo (Open-Meteo)
+            if 'soil' in results and results['soil']:
+                s = results['soil']
+                cur.execute("""
+                    INSERT INTO soil_data
+                    (polygon_id, soil_temp_c, soil_moisture, soil_moisture_percent)
+                    VALUES (%s, %s, %s, %s)
+                """, (
+                    'los_valles_veraguas',
+                    s.get('soil_temp_c'),
+                    s.get('soil_moisture'),
+                    s.get('soil_moisture_percent')
+                ))
+                print("[OK] Suelo guardado en BD")
+            
             conn.commit()
             cur.close()
             conn.close()
@@ -985,8 +1042,12 @@ def collect_all_copernicus_data(mode='normal'):
     results = {}
     
     # 0. Clima Actual (OpenWeatherMap) - No consume cuota Copernicus
-    print("\n[0/5] Obteniendo clima actual (OpenWeather)...")
+    print("\n[0/6] Obteniendo clima actual (OpenWeather)...")
     results['weather'] = get_weather_data()
+    
+    # 0.5 Datos de Suelo (Open-Meteo) - No consume cuota Copernicus
+    print("\n[0.5/6] Obteniendo datos de suelo (Open-Meteo)...")
+    results['soil'] = get_soil_data()
     
     if mode == 'normal':
         # MODO COMPLETO: ~220 PU

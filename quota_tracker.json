@@ -2,12 +2,12 @@
     "monthly_limit_pu": 30000,
     "monthly_limit_requests": 30000,
     "current_month": "2026-02",
-    "processing_units_used": 3101,
-    "requests_used": 840,
-    "last_updated": "2026-02-06T17:27:45.770051",
+    "processing_units_used": 3291,
+    "requests_used": 845,
+    "last_updated": "2026-02-06T23:52:09.512904",
     "daily_budget_pu": 1000,
     "daily_budget_requests": 1000,
-    "collections_today": 10,
+    "collections_today": 15,
     "last_collection_date": "2026-02-06",
     "notes": "Quota resets on the 1st of each month"
 }

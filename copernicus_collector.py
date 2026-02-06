@@ -12,6 +12,7 @@ IMPORTANTE: Sistema de gestión de cuota incluido
 """
 
 import os
+import math
 import json
 import cdsapi
 from datetime import datetime, timedelta
@@ -28,6 +29,40 @@ from sentinelhub import (
 import db_config
 import csv
 import requests
+
+# ============================================================
+# CÁLCULO DE PUNTO DE ROCÍO
+# ============================================================
+
+def calculate_dew_point(temp_c, humidity_percent):
+    """
+    Calcula el punto de rocío usando la fórmula Magnus-Tetens.
+    
+    Esta fórmula es precisa para temperaturas entre -40°C y 50°C.
+    El punto de rocío indica la temperatura a la que el aire se satura
+    y comienza la condensación.
+    
+    Args:
+        temp_c: Temperatura en grados Celsius
+        humidity_percent: Humedad relativa en porcentaje (0-100)
+    
+    Returns:
+        float: Punto de rocío en grados Celsius
+    """
+    if humidity_percent <= 0 or humidity_percent > 100:
+        return None
+    if temp_c is None:
+        return None
+    
+    # Constantes de Magnus-Tetens
+    a = 17.27
+    b = 237.7
+    
+    # Cálculo del punto de rocío
+    alpha = ((a * temp_c) / (b + temp_c)) + math.log(humidity_percent / 100.0)
+    dew_point = (b * alpha) / (a - alpha)
+    
+    return round(dew_point, 2)
 
 # ============================================================
 # CONFIGURACIÓN OPENWEATHER
@@ -410,20 +445,27 @@ def get_weather_data():
         response.raise_for_status()
         data = response.json()
         
+        temp = data['main']['temp']
+        humidity = data['main']['humidity']
+        
+        # Calcular punto de rocío
+        dew_point = calculate_dew_point(temp, humidity)
+        
         weather = {
-            'temp': data['main']['temp'],
+            'temp': temp,
             'temp_min': data['main']['temp_min'],
             'temp_max': data['main']['temp_max'],
-            'humidity': data['main']['humidity'],
+            'humidity': humidity,
             'pressure': data['main']['pressure'],
             'wind_speed': data['wind']['speed'],
             'wind_deg': data['wind'].get('deg', 0),
             'description': data['weather'][0]['description'],
             'icon': data['weather'][0]['icon'],
-            'clouds': data['clouds']['all']
+            'clouds': data['clouds']['all'],
+            'dew_point': dew_point
         }
         
-        print(f"[OK] Clima actual: {weather['temp']}°C, {weather['description']}")
+        print(f"[OK] Clima actual: {weather['temp']}°C, {weather['description']}, Punto de rocío: {dew_point}°C")
         return weather
         
     except Exception as e:
@@ -951,8 +993,8 @@ def save_results(results):
                 w = results['weather']
                 cur.execute("""
                     INSERT INTO weather_data
-                    (polygon_id, temperature_c, temp_min_c, temp_max_c, humidity_percent, pressure_hpa, wind_speed_ms, wind_deg, clouds_percent, weather_main, weather_description)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    (polygon_id, temperature_c, temp_min_c, temp_max_c, humidity_percent, pressure_hpa, wind_speed_ms, wind_deg, clouds_percent, weather_main, weather_description, dew_point_c)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 """, (
                     'los_valles_veraguas',
                     w.get('temp'),
@@ -962,12 +1004,12 @@ def save_results(results):
                     w.get('pressure'),
                     w.get('wind_speed'),
                     w.get('wind_deg'),
-
                     w.get('clouds'),
                     'OpenWeather',
-                    w.get('description')
+                    w.get('description'),
+                    w.get('dew_point')
                 ))
-                print("[OK] Clima guardado en BD")
+                print(f"[OK] Clima guardado en BD (Punto de rocío: {w.get('dew_point')}°C)")
             
             # Insertar NDVI/NDWI/NDSI
             if 'ndvi' in results or 'ndwi' in results or 'ndsi' in results:

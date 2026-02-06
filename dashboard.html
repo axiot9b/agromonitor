@@ -1,0 +1,1337 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroMonitor Pro - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+        rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --bg-primary: #0a0f1a;
+            --bg-secondary: #111827;
+            --bg-card: rgba(17, 24, 39, 0.8);
+            --bg-glass: rgba(255, 255, 255, 0.05);
+            --border-glass: rgba(255, 255, 255, 0.1);
+            --text-primary: #f9fafb;
+            --text-secondary: #9ca3af;
+            --text-muted: #6b7280;
+            --accent-green: #10b981;
+            --accent-blue: #3b82f6;
+            --accent-yellow: #f59e0b;
+            --accent-red: #ef4444;
+            --accent-purple: #8b5cf6;
+            --accent-brown: #92400e;
+            --gradient-primary: linear-gradient(135deg, #10b981 0%, #3b82f6 100%);
+            --gradient-warm: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            --gradient-soil: linear-gradient(135deg, #92400e 0%, #b45309 100%);
+            --shadow-glow: 0 0 40px rgba(16, 185, 129, 0.15);
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .bg-animation {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background:
+                radial-gradient(ellipse at 20% 20%, rgba(16, 185, 129, 0.08) 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 80%, rgba(59, 130, 246, 0.08) 0%, transparent 50%);
+        }
+
+        .header {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-glass);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .logo h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            background: var(--gradient-primary);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: var(--bg-glass);
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            border: 1px solid var(--border-glass);
+            font-size: 0.875rem;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            background: var(--accent-green);
+            border-radius: 50%;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.offline {
+            background: var(--accent-red);
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        .dashboard {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .grid-4 {
+            grid-template-columns: repeat(4, 1fr);
+        }
+
+        .grid-3 {
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .grid-2 {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        @media (max-width: 1200px) {
+            .grid-4 {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 768px) {
+
+            .grid-4,
+            .grid-3,
+            .grid-2 {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: var(--bg-glass);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
+            padding: 1.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(16, 185, 129, 0.3);
+            box-shadow: var(--shadow-glow);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .card-icon {
+            width: 36px;
+            height: 36px;
+            background: var(--gradient-primary);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .card-icon.yellow {
+            background: var(--gradient-warm);
+        }
+
+        .card-icon.blue {
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        }
+
+        .card-icon.brown {
+            background: var(--gradient-soil);
+        }
+
+        .card-icon.purple {
+            background: linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%);
+        }
+
+        .stat-value {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .stat-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .stat-mini {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .weather-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .weather-item {
+            background: rgba(255, 255, 255, 0.03);
+            padding: 1rem;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .weather-item-value {
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .weather-item-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+        }
+
+        .chart-container {
+            height: 200px;
+            margin-top: 1rem;
+        }
+
+        .ndvi-bar {
+            height: 12px;
+            background: linear-gradient(to right, #ef4444, #f59e0b, #84cc16, #10b981);
+            border-radius: 6px;
+            position: relative;
+            margin-top: 1rem;
+        }
+
+        .ndvi-marker {
+            position: absolute;
+            top: -4px;
+            width: 4px;
+            height: 20px;
+            background: white;
+            border-radius: 2px;
+            transform: translateX(-50%);
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .last-update {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-align: right;
+            margin-top: 1rem;
+        }
+
+        .error-message {
+            background: rgba(239, 68, 68, 0.1);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+            padding: 1rem;
+            border-radius: 12px;
+            color: var(--accent-red);
+            text-align: center;
+        }
+
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: var(--text-muted);
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 2px solid var(--border-glass);
+            border-top-color: var(--accent-green);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .db-stats {
+            display: flex;
+            gap: 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        .db-stat {
+            text-align: center;
+        }
+
+        .db-stat-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--accent-green);
+        }
+
+        .db-stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .interpretation {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 500;
+            margin-top: 0.5rem;
+        }
+
+        .interpretation.good {
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-green);
+        }
+
+        .interpretation.warning {
+            background: rgba(245, 158, 11, 0.1);
+            color: var(--accent-yellow);
+        }
+
+        .interpretation.bad {
+            background: rgba(239, 68, 68, 0.1);
+            color: var(--accent-red);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="bg-animation"></div>
+
+    <header class="header">
+        <div class="header-content">
+            <div class="logo">
+                <div class="logo-icon">🌱</div>
+                <h1>AgroMonitor Pro</h1>
+            </div>
+            <div class="status-badge">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="statusText">Conectando...</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="dashboard">
+        <!-- Row 1: Main Stats -->
+        <div class="grid grid-4">
+            <!-- Temperature -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon yellow">🌡️</div>
+                        Temperatura
+                    </div>
+                </div>
+                <div class="stat-value" id="tempValue">--°C</div>
+                <div class="stat-label">Actual</div>
+                <div class="stat-mini" id="tempRange">Min: -- | Max: --</div>
+            </div>
+
+            <!-- Humidity -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon blue">💧</div>
+                        Humedad
+                    </div>
+                </div>
+                <div class="stat-value" id="humidityValue">--%</div>
+                <div class="stat-label">Relativa</div>
+                <div class="stat-mini" id="pressureValue">Presión: -- hPa</div>
+            </div>
+
+            <!-- Wind -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon">💨</div>
+                        Viento
+                    </div>
+                </div>
+                <div class="stat-value" id="windValue">-- m/s</div>
+                <div class="stat-label">Velocidad</div>
+                <div class="stat-mini" id="windDir">Dirección: --°</div>
+            </div>
+
+            <!-- Clouds -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon purple">☁️</div>
+                        Nubes
+                    </div>
+                </div>
+                <div class="stat-value" id="cloudsValue">--%</div>
+                <div class="stat-label" id="weatherDesc">--</div>
+            </div>
+        </div>
+
+        <!-- Row 2: Soil + Satellite Indices -->
+        <div class="grid grid-2">
+            <!-- Soil Data -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon brown">🌍</div>
+                        Datos del Suelo
+                    </div>
+                </div>
+                <div class="weather-grid">
+                    <div class="weather-item">
+                        <div class="weather-item-value" id="soilTemp">--°C</div>
+                        <div class="weather-item-label">Temperatura Suelo</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="weather-item-value" id="soilMoisture">--%</div>
+                        <div class="weather-item-label">Humedad Suelo</div>
+                    </div>
+                </div>
+                <div class="last-update" id="soilUpdate">Última actualización: --</div>
+            </div>
+
+            <!-- Satellite Indices -->
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon">🛰️</div>
+                        Índices Satelitales
+                    </div>
+                </div>
+                <div class="weather-grid">
+                    <div class="weather-item">
+                        <div class="weather-item-value" id="ndviValue">--</div>
+                        <div class="weather-item-label">NDVI (Vegetación)</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="weather-item-value" id="ndwiValue">--</div>
+                        <div class="weather-item-label">NDWI (Agua)</div>
+                    </div>
+                    <div class="weather-item">
+                        <div class="weather-item-value" id="ndsiValue">--</div>
+                        <div class="weather-item-label">NDSI (Suelo)</div>
+                    </div>
+                    <div class="weather-item">
+                        <span class="interpretation good" id="ndsiInterp">--</span>
+                    </div>
+                </div>
+                <div class="ndvi-bar">
+                    <div class="ndvi-marker" id="ndviMarker" style="left: 50%;"></div>
+                </div>
+                <div class="last-update" id="ndviUpdate">Última actualización: --</div>
+            </div>
+        </div>
+
+        <!-- Row 3: Charts -->
+        <div class="grid grid-2">
+            <!-- Temperature History -->
+            <div class="card">
+                <div class="section-title">📈 Historial de Temperatura</div>
+                <div class="chart-container">
+                    <canvas id="tempChart"></canvas>
+                </div>
+            </div>
+
+            <!-- NDVI History -->
+            <div class="card">
+                <div class="section-title">🌿 Historial NDVI</div>
+                <div class="chart-container">
+                    <canvas id="ndviChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Row 4: Database Stats -->
+        <div class="card">
+            <div class="section-title">💾 Estadísticas de Base de Datos</div>
+            <div class="db-stats" id="dbStats">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Cargando estadísticas...
+                </div>
+            </div>
+            <div class="last-update" id="dbUpdate">Última actualización: --</div>
+        </div>
+
+        <!-- NEW: NDVI Daily Statistics -->
+        <div class="card">
+            <div class="section-title">📊 Estadísticas Diarias de NDVI (Promedio, Máximo, Mínimo)</div>
+            <div id="ndviDailyStats">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Cargando estadísticas diarias de NDVI...
+                </div>
+            </div>
+            <div class="last-update" id="ndviDailyUpdate">Última actualización: --</div>
+        </div>
+
+        <!-- NEW: Dew Point Daily -->
+        <div class="card">
+            <div class="section-title">❄️ Punto de Rocío Diario (Promedio, Máximo, Mínimo)</div>
+            <div id="dewPointDaily">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Cargando punto de rocío diario...
+                </div>
+            </div>
+            <div class="last-update" id="dewPointDailyUpdate">Última actualización: --</div>
+        </div>
+
+        <!-- NEW: Dew Point Correlation Analysis -->
+        <div class="card">
+            <div class="section-title">🌡️ Análisis de Punto de Rocío - Correlaciones y Riesgos</div>
+            <div id="dewPointCorrelation">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Analizando correlaciones del punto de rocío...
+                </div>
+            </div>
+            <div class="last-update" id="dewPointCorrelationUpdate">Última actualización: --</div>
+        </div>
+
+        <!-- NEW: Soil-Weather Correlation -->
+        <div class="card">
+            <div class="section-title">🔗 Correlación: Humedad del Suelo vs Temperatura del Clima</div>
+            <div id="soilWeatherCorrelation">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Calculando correlaciones...
+                </div>
+            </div>
+            <div class="last-update" id="correlationUpdate">Última actualización: --</div>
+        </div>
+
+        <!-- NEW: Soil-Weather Correlation Chart -->
+        <div class="grid grid-2">
+            <div class="card">
+                <div class="section-title">📈 Gráfica: Humedad del Suelo vs Temperatura del Clima</div>
+                <div class="chart-container">
+                    <canvas id="soilWeatherCorrelationChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Dew Point Chart -->
+            <div class="card">
+                <div class="section-title">❄️ Gráfica: Punto de Rocío vs Temperatura y Humedad</div>
+                <div class="chart-container" style="height: 280px;">
+                    <canvas id="dewPointChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script>
+        // API Configuration
+        const API_BASE = 'http://localhost:5000';
+
+        // Connection status
+        let isConnected = false;
+
+        function updateStatus(connected, message) {
+            const dot = document.getElementById('statusDot');
+            const text = document.getElementById('statusText');
+            dot.className = connected ? 'status-dot' : 'status-dot offline';
+            text.textContent = message;
+            isConnected = connected;
+        }
+
+        // Format date
+        function formatDate(isoString) {
+            if (!isoString) return '--';
+            const date = new Date(isoString);
+            return date.toLocaleString('es-PA', {
+                day: '2-digit',
+                month: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // Load Weather Data
+        async function loadWeather() {
+            try {
+                const res = await fetch(`${API_BASE}/api/weather`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+
+                document.getElementById('tempValue').textContent = `${Math.round(data.temperature_c)}°C`;
+                document.getElementById('tempRange').textContent = `Min: ${Math.round(data.temp_min_c || data.temperature_c)}° | Max: ${Math.round(data.temp_max_c || data.temperature_c)}°`;
+                document.getElementById('humidityValue').textContent = `${data.humidity_percent}%`;
+                document.getElementById('pressureValue').textContent = `Presión: ${data.pressure_hpa} hPa`;
+                document.getElementById('windValue').textContent = `${data.wind_speed_ms} m/s`;
+                document.getElementById('windDir').textContent = `Dirección: ${data.wind_deg}°`;
+                document.getElementById('cloudsValue').textContent = `${data.clouds_percent}%`;
+                document.getElementById('weatherDesc').textContent = data.weather_description || '--';
+
+                updateStatus(true, 'Conectado');
+            } catch (error) {
+                console.error('Weather error:', error);
+                updateStatus(false, 'Sin conexión');
+            }
+        }
+
+        // Load Soil Data
+        async function loadSoil() {
+            try {
+                const res = await fetch(`${API_BASE}/api/soil`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+
+                document.getElementById('soilTemp').textContent = `${data.soil_temp_c}°C`;
+                document.getElementById('soilMoisture').textContent = `${data.soil_moisture_percent}%`;
+                document.getElementById('soilUpdate').textContent = `Última actualización: ${formatDate(data.timestamp)}`;
+            } catch (error) {
+                console.error('Soil error:', error);
+            }
+        }
+
+        // Load NDVI Data
+        async function loadNDVI() {
+            try {
+                const res = await fetch(`${API_BASE}/api/ndvi`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+
+                const ndvi = data.ndvi_mean ? data.ndvi_mean.toFixed(3) : '--';
+                const ndwi = data.ndwi_mean ? data.ndwi_mean.toFixed(3) : '--';
+
+                document.getElementById('ndviValue').textContent = ndvi;
+                document.getElementById('ndwiValue').textContent = ndwi;
+                document.getElementById('ndsiValue').textContent = data.ndsi_mean ? data.ndsi_mean.toFixed(3) : '--';
+
+                // NDSI Interpretation
+                const interp = document.getElementById('ndsiInterp');
+                if (data.ndsi_interpretation) {
+                    interp.textContent = data.ndsi_interpretation;
+                    if (data.ndsi_interpretation.includes('Vegetación')) {
+                        interp.className = 'interpretation good';
+                    } else if (data.ndsi_interpretation.includes('Mixto')) {
+                        interp.className = 'interpretation warning';
+                    } else {
+                        interp.className = 'interpretation bad';
+                    }
+                }
+
+                // NDVI Marker position (0 to 1 mapped to 0-100%)
+                if (data.ndvi_mean) {
+                    const pos = Math.max(0, Math.min(100, ((data.ndvi_mean + 0.2) / 1.2) * 100));
+                    document.getElementById('ndviMarker').style.left = `${pos}%`;
+                }
+
+                document.getElementById('ndviUpdate').textContent = `Última actualización: ${formatDate(data.timestamp)}`;
+            } catch (error) {
+                console.error('NDVI error:', error);
+            }
+        }
+
+        // Load Database Stats
+        async function loadStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/stats`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+
+                const stats = data.records;
+                let html = '';
+                for (const [key, value] of Object.entries(stats)) {
+                    const label = key.replace('_records', '').replace('_', ' ');
+                    html += `
+                        <div class="db-stat">
+                            <div class="db-stat-value">${value}</div>
+                            <div class="db-stat-label">${label}</div>
+                        </div>
+                    `;
+                }
+                document.getElementById('dbStats').innerHTML = html;
+                document.getElementById('dbUpdate').textContent = `Última actualización: ${formatDate(data.last_update)}`;
+            } catch (error) {
+                console.error('Stats error:', error);
+                document.getElementById('dbStats').innerHTML = '<div class="error-message">No se pudo conectar a la API</div>';
+            }
+        }
+
+        // Load Weather History Chart
+        async function loadWeatherHistory() {
+            try {
+                const res = await fetch(`${API_BASE}/api/weather/history?days=7&limit=20`);
+                if (!res.ok) throw new Error('API Error');
+                const json = await res.json();
+                const data = json.data.reverse();
+
+                const labels = data.map(d => formatDate(d.timestamp));
+                const temps = data.map(d => d.temperature_c);
+
+                const ctx = document.getElementById('tempChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'Temperatura (°C)',
+                            data: temps,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            x: { ticks: { color: '#9ca3af', maxTicksLimit: 5 }, grid: { display: false } }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Weather history error:', error);
+            }
+        }
+
+        // Load NDVI History Chart
+        async function loadNDVIHistory() {
+            try {
+                const res = await fetch(`${API_BASE}/api/ndvi/history?days=30`);
+                if (!res.ok) throw new Error('API Error');
+                const json = await res.json();
+                const data = json.data.reverse();
+
+                const labels = data.map(d => formatDate(d.timestamp));
+                const ndvi = data.map(d => d.ndvi_mean);
+
+                const ctx = document.getElementById('ndviChart').getContext('2d');
+                new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [{
+                            label: 'NDVI',
+                            data: ndvi,
+                            borderColor: '#10b981',
+                            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                            borderWidth: 2,
+                            fill: true,
+                            tension: 0.4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { ticks: { color: '#9ca3af' }, grid: { color: 'rgba(255,255,255,0.05)' }, min: -0.5, max: 1 },
+                            x: { ticks: { color: '#9ca3af', maxTicksLimit: 5 }, grid: { display: false } }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('NDVI history error:', error);
+            }
+        }
+
+        // Load NDVI Daily Statistics
+        async function loadNDVIDailyStats() {
+            try {
+                const res = await fetch(`${API_BASE}/api/ndvi/daily`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+
+                const html = `
+                    <div class="weather-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        ${data.data.slice(0, 7).map(item => `
+                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                                <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                    ${new Date(item.date).toLocaleDateString('es-PA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                    <span style="color: var(--accent-green);">Promedio:</span>
+                                    <span>${item.ndvi_avg ? item.ndvi_avg.toFixed(3) : 'N/A'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                    <span style="color: var(--accent-blue);">Máximo:</span>
+                                    <span>${item.ndvi_max ? item.ndvi_max.toFixed(3) : 'N/A'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--accent-yellow);">Mínimo:</span>
+                                    <span>${item.ndvi_min ? item.ndvi_min.toFixed(3) : 'N/A'}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+
+                document.getElementById('ndviDailyStats').innerHTML = html;
+                document.getElementById('ndviDailyUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-PA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+            } catch (error) {
+                console.error('NDVI Daily Stats error:', error);
+                document.getElementById('ndviDailyStats').innerHTML = '<p style="color: var(--accent-red);">Error cargando estadísticas diarias de NDVI</p>';
+            }
+        }
+
+        // Load Dew Point Daily
+        async function loadDewPointDaily() {
+            try {
+                const res = await fetch(`${API_BASE}/api/weather/dewpoint`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+
+                const html = `
+                    <div class="weather-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        ${data.data.slice(0, 7).map(item => `
+                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                                <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                    ${new Date(item.date).toLocaleDateString('es-PA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                    <span style="color: var(--accent-green);">Promedio:</span>
+                                    <span>${item.dew_point_avg ? item.dew_point_avg.toFixed(1) + '°C' : 'N/A'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                    <span style="color: var(--accent-blue);">Máximo:</span>
+                                    <span>${item.dew_point_max ? item.dew_point_max.toFixed(1) + '°C' : 'N/A'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--accent-yellow);">Mínimo:</span>
+                                    <span>${item.dew_point_min ? item.dew_point_min.toFixed(1) + '°C' : 'N/A'}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+
+                document.getElementById('dewPointDaily').innerHTML = html;
+                document.getElementById('dewPointDailyUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-PA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+
+                // Cargar gráfica del punto de rocío
+                await loadDewPointChart(data.data);
+            } catch (error) {
+                console.error('Dew Point Daily error:', error);
+                document.getElementById('dewPointDaily').innerHTML = '<p style="color: var(--accent-red);">Error cargando punto de rocío diario</p>';
+            }
+        }
+
+        // Load Dew Point Chart
+        async function loadDewPointChart(dewPointData) {
+            try {
+                const ctx = document.getElementById('dewPointChart').getContext('2d');
+
+                // Destroy existing chart if it exists
+                if (window.dewPointChart) {
+                    window.dewPointChart.destroy();
+                }
+
+                // Reverse to show oldest to newest
+                const data = [...dewPointData].reverse().slice(-14); // Last 14 days
+
+                const labels = data.map(item =>
+                    new Date(item.date).toLocaleDateString('es-PA', { day: 'numeric', month: 'short' })
+                );
+
+                const dewPointAvg = data.map(item => item.dew_point_avg);
+                const dewPointMax = data.map(item => item.dew_point_max);
+                const dewPointMin = data.map(item => item.dew_point_min);
+                const tempAvg = data.map(item => item.temperature_avg);
+                const humidityAvg = data.map(item => item.humidity_avg);
+
+                window.dewPointChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Punto de Rocío (°C)',
+                                data: dewPointAvg,
+                                borderColor: '#06b6d4', // cyan
+                                backgroundColor: 'rgba(6, 182, 212, 0.2)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.4,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Temperatura (°C)',
+                                data: tempAvg,
+                                borderColor: '#f59e0b', // amber
+                                backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                                borderWidth: 2,
+                                borderDash: [5, 5],
+                                fill: false,
+                                tension: 0.4,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Humedad (%)',
+                                data: humidityAvg,
+                                borderColor: '#3b82f6', // blue
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                borderWidth: 2,
+                                borderDash: [2, 2],
+                                fill: false,
+                                tension: 0.4,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: '#9ca3af' }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                                titleColor: '#f9fafb',
+                                bodyColor: '#9ca3af',
+                                callbacks: {
+                                    afterBody: function (context) {
+                                        const index = context[0].dataIndex;
+                                        const dewPt = dewPointAvg[index];
+                                        const temp = tempAvg[index];
+                                        if (dewPt && temp) {
+                                            const diff = temp - dewPt;
+                                            if (diff < 2) {
+                                                return '\n⚠️ Riesgo de rocío/condensación';
+                                            }
+                                        }
+                                        return '';
+                                    }
+                                }
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Temperatura (°C)',
+                                    color: '#06b6d4'
+                                },
+                                ticks: { color: '#9ca3af' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Humedad (%)',
+                                    color: '#3b82f6'
+                                },
+                                ticks: { color: '#3b82f6' },
+                                grid: { display: false },
+                                min: 0,
+                                max: 100
+                            },
+                            x: {
+                                ticks: { color: '#9ca3af' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Dew Point Chart error:', error);
+            }
+        }
+
+        // Load Dew Point Correlation Analysis
+        async function loadDewPointCorrelation() {
+            try {
+                const res = await fetch(`${API_BASE}/api/weather/dewpoint/correlation`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+
+                const c = data.correlations;
+
+                // Determinar nivel de riesgo
+                const riskDays = c.condensation_risk_days || 0;
+                const riskLevel = riskDays > 3 ? 'alto' : riskDays > 0 ? 'moderado' : 'bajo';
+                const riskColor = riskDays > 3 ? 'var(--accent-red)' : riskDays > 0 ? 'var(--accent-yellow)' : 'var(--accent-green)';
+
+                const html = `
+                    <div class="weather-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        <!-- Dew Depression Analysis -->
+                        <div style="background: linear-gradient(135deg, rgba(6, 182, 212, 0.2), rgba(59, 130, 246, 0.1)); padding: 1.25rem; border-radius: 12px; border: 1px solid rgba(6, 182, 212, 0.3);">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                🌡️ Depresión del Punto de Rocío
+                            </div>
+                            <div style="font-size: 1.75rem; font-weight: bold; color: #06b6d4;">
+                                ${c.avg_dew_depression ? c.avg_dew_depression.toFixed(1) + '°C' : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">
+                                Promedio (Temp - Punto de Rocío)
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">
+                                Mínimo: ${c.min_dew_depression ? c.min_dew_depression.toFixed(1) + '°C' : 'N/A'}
+                            </div>
+                        </div>
+                        
+                        <!-- Condensation Risk -->
+                        <div style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.1), rgba(249, 115, 22, 0.1)); padding: 1.25rem; border-radius: 12px; border: 1px solid ${riskColor};">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                ⚠️ Riesgo de Condensación
+                            </div>
+                            <div style="font-size: 1.75rem; font-weight: bold; color: ${riskColor};">
+                                ${riskDays} días
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem; margin-top: 0.25rem;">
+                                Con depresión < 2°C (${riskLevel})
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.75rem; margin-top: 0.5rem;">
+                                ${riskLevel === 'alto' ? 'Rocío/escarcha probable' : riskLevel === 'moderado' ? 'Monitorear condiciones' : 'Condiciones estables'}
+                            </div>
+                        </div>
+                        
+                        <!-- Dew Point vs Temperature Correlation -->
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Punto de Rocío vs Temperatura
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${c.dewpoint_vs_temperature > 0.7 ? 'var(--accent-green)' : c.dewpoint_vs_temperature < 0.3 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${c.dewpoint_vs_temperature ? c.dewpoint_vs_temperature.toFixed(3) : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem;">
+                                ${c.dewpoint_vs_temperature > 0.7 ? 'Correlación fuerte' : c.dewpoint_vs_temperature < 0.3 ? 'Correlación débil' : 'Correlación moderada'}
+                            </div>
+                        </div>
+                        
+                        <!-- Dew Point vs Humidity Correlation -->
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Punto de Rocío vs Humedad
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${c.dewpoint_vs_humidity > 0.7 ? 'var(--accent-green)' : c.dewpoint_vs_humidity < 0.3 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${c.dewpoint_vs_humidity ? c.dewpoint_vs_humidity.toFixed(3) : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.8rem;">
+                                ${c.dewpoint_vs_humidity > 0.7 ? 'Correlación fuerte' : c.dewpoint_vs_humidity < 0.3 ? 'Correlación débil' : 'Correlación moderada'}
+                            </div>
+                        </div>
+                        
+                        <!-- Dew Point vs Soil Temp -->
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Punto de Rocío vs Temp. Suelo
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${c.dewpoint_vs_soil_temp > 0.5 ? 'var(--accent-green)' : c.dewpoint_vs_soil_temp < -0.5 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${c.dewpoint_vs_soil_temp ? c.dewpoint_vs_soil_temp.toFixed(3) : 'N/A'}
+                            </div>
+                        </div>
+                        
+                        <!-- Dew Point vs Soil Moisture -->
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Punto de Rocío vs Humedad Suelo
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${c.dewpoint_vs_soil_moisture > 0.5 ? 'var(--accent-green)' : c.dewpoint_vs_soil_moisture < -0.5 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${c.dewpoint_vs_soil_moisture ? c.dewpoint_vs_soil_moisture.toFixed(3) : 'N/A'}
+                            </div>
+                        </div>
+                    </div>`;
+
+                document.getElementById('dewPointCorrelation').innerHTML = html;
+                document.getElementById('dewPointCorrelationUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-PA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+            } catch (error) {
+                console.error('Dew Point Correlation error:', error);
+                document.getElementById('dewPointCorrelation').innerHTML = '<p style="color: var(--accent-red);">Error cargando correlaciones del punto de rocío. Ejecute el colector para generar datos.</p>';
+            }
+        }
+
+        // Load Soil-Weather Correlation
+        async function loadSoilWeatherCorrelation() {
+            try {
+                const res = await fetch(`${API_BASE}/api/soil/weather/correlation`);
+                if (!res.ok) throw new Error('API Error');
+                const data = await res.json();
+
+                const correlations = data.correlations;
+                const html = `
+                    <div class="weather-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Humedad Suelo vs Temperatura Aire
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${correlations.soil_moisture_vs_air_temp > 0.5 ? 'var(--accent-green)' : correlations.soil_moisture_vs_air_temp < -0.5 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${correlations.soil_moisture_vs_air_temp ? correlations.soil_moisture_vs_air_temp.toFixed(3) : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.85rem;">
+                                ${correlations.soil_moisture_vs_air_temp > 0.5 ? 'Correlación fuerte positiva' : correlations.soil_moisture_vs_air_temp < -0.5 ? 'Correlación fuerte negativa' : 'Correlación débil'}
+                            </div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Temperatura Suelo vs Temperatura Aire
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${correlations.soil_temp_vs_air_temp > 0.5 ? 'var(--accent-green)' : correlations.soil_temp_vs_air_temp < -0.5 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${correlations.soil_temp_vs_air_temp ? correlations.soil_temp_vs_air_temp.toFixed(3) : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.85rem;">
+                                ${correlations.soil_temp_vs_air_temp > 0.5 ? 'Correlación fuerte positiva' : correlations.soil_temp_vs_air_temp < -0.5 ? 'Correlación fuerte negativa' : 'Correlación débil'}
+                            </div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Humedad Suelo vs Humedad Aire
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${correlations.soil_moisture_vs_air_humidity > 0.5 ? 'var(--accent-green)' : correlations.soil_moisture_vs_air_humidity < -0.5 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${correlations.soil_moisture_vs_air_humidity ? correlations.soil_moisture_vs_air_humidity.toFixed(3) : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.85rem;">
+                                ${correlations.soil_moisture_vs_air_humidity > 0.5 ? 'Correlación fuerte positiva' : correlations.soil_moisture_vs_air_humidity < -0.5 ? 'Correlación fuerte negativa' : 'Correlación débil'}
+                            </div>
+                        </div>
+                    </div>`;
+
+                document.getElementById('soilWeatherCorrelation').innerHTML = html;
+                document.getElementById('correlationUpdate').textContent = `Última actualización: ${new Date().toLocaleString('es-PA', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}`;
+
+                // Load correlation chart
+                await loadSoilWeatherCorrelationChart(data.data);
+            } catch (error) {
+                console.error('Soil-Weather Correlation error:', error);
+                document.getElementById('soilWeatherCorrelation').innerHTML = '<p style="color: var(--accent-red);">Error cargando correlación suelo-clima</p>';
+            }
+        }
+
+        // Load Soil-Weather Correlation Chart
+        async function loadSoilWeatherCorrelationChart(correlationData) {
+            try {
+                const ctx = document.getElementById('soilWeatherCorrelationChart').getContext('2d');
+
+                // Clear existing chart if it exists
+                if (window.soilWeatherCorrelationChart) {
+                    window.soilWeatherCorrelationChart.destroy();
+                }
+
+                // Prepare data for chart - combine date and hour to form complete timestamp
+                const labels = correlationData.slice(0, 24).map(item => {
+                    // Combine date and hour to form a complete date string
+                    const hourStr = String(Math.floor(item.hour)).padStart(2, '0');
+                    const dateTimeStr = `${item.date}T${hourStr}:00:00`;
+                    return new Date(dateTimeStr).toLocaleDateString('es-PA', {
+                        weekday: 'short',
+                        day: 'numeric',
+                        hour: '2-digit'
+                    });
+                });
+
+                const soilMoisture = correlationData.slice(0, 24).map(item => item.soil_moisture_percent);
+                const airTemp = correlationData.slice(0, 24).map(item => item.air_temp_c);
+
+                window.soilWeatherCorrelationChart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Humedad del Suelo (%)',
+                                data: soilMoisture,
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.3,
+                                yAxisID: 'y'
+                            },
+                            {
+                                label: 'Temperatura del Aire (°C)',
+                                data: airTemp,
+                                borderColor: '#ef4444',
+                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                borderWidth: 3,
+                                fill: true,
+                                tension: 0.3,
+                                yAxisID: 'y1'
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        plugins: {
+                            legend: {
+                                labels: { color: '#9ca3af' }
+                            },
+                            tooltip: {
+                                backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                                titleColor: '#f9fafb',
+                                bodyColor: '#9ca3af'
+                            }
+                        },
+                        scales: {
+                            y: {
+                                type: 'linear',
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: 'Humedad del Suelo (%)',
+                                    color: '#3b82f6'
+                                },
+                                ticks: { color: '#3b82f6' },
+                                grid: { color: 'rgba(255,255,255,0.05)' }
+                            },
+                            y1: {
+                                type: 'linear',
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: 'Temperatura del Aire (°C)',
+                                    color: '#ef4444'
+                                },
+                                ticks: { color: '#ef4444' },
+                                grid: { display: false }
+                            },
+                            x: {
+                                ticks: { color: '#9ca3af' },
+                                grid: { display: false }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Soil-Weather Correlation Chart error:', error);
+            }
+        }
+
+        // Initialize
+        async function init() {
+            updateStatus(false, 'Conectando...');
+            await loadWeather();
+            await loadSoil();
+            await loadNDVI();
+            await loadStats();
+            await loadWeatherHistory();
+            await loadNDVIHistory();
+            await loadNDVIDailyStats();
+            await loadDewPointDaily();
+            await loadDewPointCorrelation();
+            await loadSoilWeatherCorrelation();
+
+            // Refresh every 5 minutes
+            setInterval(() => {
+                loadWeather();
+                loadSoil();
+                loadNDVI();
+                loadStats();
+                loadNDVIDailyStats();
+                loadDewPointDaily();
+                loadDewPointCorrelation();
+                loadSoilWeatherCorrelation();
+            }, 5 * 60 * 1000);
+        }
+
+        init();
+    </script>
+</body>
+
+</html>

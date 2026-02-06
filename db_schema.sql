@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS weather_data (
     clouds_percent INTEGER,
     weather_main VARCHAR(50),
     weather_description VARCHAR(100),
+    dew_point_c DECIMAL(5,2),
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

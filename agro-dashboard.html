@@ -1489,6 +1489,78 @@
             </div>
         </div>
 
+        <!-- NEW: NDVI Daily Statistics -->
+        <div class="grid grid-full">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon">📊</div>
+                        <span>Estadísticas Diarias de NDVI (Promedio, Máximo, Mínimo)</span>
+                    </div>
+                    <span class="last-update" id="ndviDailyUpdate">--</span>
+                </div>
+                <div id="ndviDailyContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Cargando estadísticas diarias de NDVI...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Dew Point Daily -->
+        <div class="grid grid-full">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon">❄️</div>
+                        <span>Punto de Rocío Diario (Promedio, Máximo, Mínimo)</span>
+                    </div>
+                    <span class="last-update" id="dewpointDailyUpdate">--</span>
+                </div>
+                <div id="dewpointDailyContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Cargando punto de rocío diario...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Soil-Weather Correlation -->
+        <div class="grid grid-full">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon">🔗</div>
+                        <span>Correlación: Humedad del Suelo vs Temperatura del Clima</span>
+                    </div>
+                    <span class="last-update" id="correlationUpdate">--</span>
+                </div>
+                <div id="correlationContent">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Calculando correlaciones...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW: Soil-Weather Correlation Chart -->
+        <div class="grid grid-full">
+            <div class="card">
+                <div class="card-header">
+                    <div class="card-title">
+                        <div class="card-icon">📈</div>
+                        <span>Gráfica: Humedad del Suelo vs Temperatura del Clima</span>
+                    </div>
+                </div>
+                <div class="chart-container" style="height: 300px;">
+                    <canvas id="soilWeatherCorrelationChart"></canvas>
+                </div>
+            </div>
+        </div>
+
         <!-- API Limits -->
         <div class="grid grid-full">
             <div class="card">
@@ -1554,7 +1626,9 @@
                                 lon: -81.191935,
                                 altitude: 379.62,
                                 region: 'Veraguas, Panamá'
-                            }
+                            },
+                            // API Local - AgroMonitor
+                            local_api_url: 'http://localhost:5000'
                         };
 
                         // Variables globales
@@ -1673,7 +1747,10 @@
                                 loadTemperatureNdviChart(),
                                 loadPrecipitationCharts(),
                                 loadHistoricalData(),
-                                loadOpenWeatherComparison()
+                                loadOpenWeatherComparison(),
+                                loadNDVIDailyStats(),
+                                loadDewPointDaily(),
+                                loadSoilWeatherCorrelation()
                             ]);
 
                             // Update last refresh time
@@ -1730,24 +1807,112 @@
 
                         async function loadWeather() {
                             try {
-                                const response = await fetch(
-                                    `https://api.agromonitoring.com/agro/1.0/weather?polyid=${polygonId}&appid=${apiKey}`
-                                );
-                                const data = await response.json();
+                                // Usar API local primero, si falla usar API externa
+                                let data;
+                                try {
+                                    const response = await fetch(`${CONFIG.local_api_url}/api/weather`);
+                                    data = await response.json();
+                                    
+                                    // Verificar si la API local tiene datos
+                                    if (data.error || data.message) {
+                                        throw new Error('API local no tiene datos');
+                                    }
+                                    
+                                    // Usar datos de la API local
+                                    const temp = Math.round(data.temperature_c);
+                                    const feelsLike = Math.round(data.feels_like_c || data.temperature_c);
+                                    const humidity = data.humidity_percent;
+                                    const pressure = data.pressure_hpa;
+                                    const windSpeed = data.wind_speed_ms;
+                                    const windDeg = data.wind_deg || 0;
+                                    const clouds = data.clouds_percent;
+                                    const visibility = 'N/A';
+                                    const weatherDesc = data.weather_description || 'N/A';
+                                    const weatherMain = data.weather_main || 'N/A';
+                                    const dewPoint = data.dew_point_c ? Math.round(data.dew_point_c) : null;
 
-                                const temp = Math.round(data.main.temp - 273.15);
-                                const feelsLike = Math.round(data.main.feels_like - 273.15);
-                                const humidity = data.main.humidity;
-                                const pressure = data.main.pressure;
-                                const windSpeed = data.wind.speed;
-                                const windDeg = data.wind.deg || 0;
-                                const clouds = data.clouds.all;
-                                const visibility = data.visibility ? (data.visibility / 1000).toFixed(1) : 'N/A';
-                                const weatherDesc = data.weather[0].description;
-                                const weatherMain = data.weather[0].main;
+                                    // Update quick stats
+                                    document.getElementById('tempValue').textContent = `${temp}°C`;
+                                    document.getElementById('feelsLike').textContent = `${feelsLike}°C`;
+                                    document.getElementById('humidityValue').textContent = `${humidity}%`;
+                                    document.getElementById('dewPoint').textContent = dewPoint ? `${dewPoint}°C` : 'N/A';
 
-                                // Calculate dew point
-                                const dewPoint = Math.round(temp - ((100 - humidity) / 5));
+                                    // Full weather display
+                                    const windDirection = getWindDirection(windDeg);
+
+                                    const html = `
+                    <div class="weather-main">
+                        <div class="weather-icon">${weatherIcons[weatherMain] || '🌤️'}</div>
+                        <div>
+                            <div class="weather-temp">${temp}°C</div>
+                            <div class="weather-desc">${weatherDesc}</div>
+                        </div>
+                    </div>
+                    <div class="weather-grid">
+                        <div class="weather-item">
+                            <div class="weather-item-icon">🌡️</div>
+                            <div class="weather-item-value">${feelsLike}°C</div>
+                            <div class="weather-item-label">Sensación</div>
+                        </div>
+                        <div class="weather-item">
+                            <div class="weather-item-icon">💧</div>
+                            <div class="weather-item-value">${humidity}%</div>
+                            <div class="weather-item-label">Humedad</div>
+                        </div>
+                        <div class="weather-item">
+                            <div class="weather-item-icon">🌬️</div>
+                            <div class="weather-item-value">${windSpeed} m/s</div>
+                            <div class="weather-item-label">${windDirection}</div>
+                        </div>
+                        <div class="weather-item">
+                            <div class="weather-item-icon">📊</div>
+                            <div class="weather-item-value">${pressure}</div>
+                            <div class="weather-item-label">hPa</div>
+                        </div>
+                        <div class="weather-item">
+                            <div class="weather-item-icon">☁️</div>
+                            <div class="weather-item-value">${clouds}%</div>
+                            <div class="weather-item-label">Nubosidad</div>
+                        </div>
+                        <div class="weather-item">
+                            <div class="weather-item-icon">👁️</div>
+                            <div class="weather-item-value">${visibility}</div>
+                            <div class="weather-item-label">km Visib.</div>
+                        </div>
+                        <div class="weather-item">
+                            <div class="weather-item-icon">❄️</div>
+                            <div class="weather-item-value">${dewPoint ? dewPoint + '°C' : 'N/A'}</div>
+                            <div class="weather-item-label">Punto Rocío</div>
+                        </div>
+                    </div>`;
+
+                                    document.getElementById('weatherDetails').innerHTML = html;
+                                    document.getElementById('lastRefreshTime').textContent = 'Ahora mismo';
+                                    document.getElementById('refreshDot').classList.remove('stale');
+                                    lastUpdateTime = new Date();
+                                    return;
+                                } catch (localError) {
+                                    console.log('API local no disponible, usando API externa:', localError);
+                                    
+                                    // Fallback a API externa
+                                    const response = await fetch(
+                                        `https://api.agromonitoring.com/agro/1.0/weather?polyid=${polygonId}&appid=${apiKey}`
+                                    );
+                                    data = await response.json();
+
+                                    const temp = Math.round(data.main.temp - 273.15);
+                                    const feelsLike = Math.round(data.main.feels_like - 273.15);
+                                    const humidity = data.main.humidity;
+                                    const pressure = data.main.pressure;
+                                    const windSpeed = data.wind.speed;
+                                    const windDeg = data.wind.deg || 0;
+                                    const clouds = data.clouds.all;
+                                    const visibility = data.visibility ? (data.visibility / 1000).toFixed(1) : 'N/A';
+                                    const weatherDesc = data.weather[0].description;
+                                    const weatherMain = data.weather[0].main;
+
+                                    // Calculate dew point
+                                    const dewPoint = Math.round(temp - ((100 - humidity) / 5));
 
                                 // Update quick stats
                                 document.getElementById('tempValue').textContent = `${temp}°C`;
@@ -1875,13 +2040,67 @@
 
                         async function loadSoilData() {
                             try {
-                                const response = await fetch(
-                                    `https://api.agromonitoring.com/agro/1.0/soil?polyid=${polygonId}&appid=${apiKey}`
-                                );
-                                const data = await response.json();
+                                // Usar API local primero, si falla usar API externa
+                                let data;
+                                try {
+                                    const response = await fetch(`${CONFIG.local_api_url}/api/soil`);
+                                    data = await response.json();
+                                    
+                                    // Verificar si la API local tiene datos
+                                    if (data.error || data.message) {
+                                        throw new Error('API local no tiene datos');
+                                    }
+                                    
+                                    // Usar datos de la API local
+                                    const soilTemp = data.soil_temp_c.toFixed(1);
+                                    const soilMoisture = data.soil_moisture_percent.toFixed(0);
 
-                                const soilTemp = (data.t10 - 273.15).toFixed(1);
-                                const soilMoisture = (data.moisture * 100).toFixed(0);
+                                    // Update quick stat
+                                    document.getElementById('soilMoistureValue').textContent = `${soilMoisture}%`;
+
+                                    let moistureStatus = 'Óptimo';
+                                    if (soilMoisture < 30) moistureStatus = '⚠️ Bajo';
+                                    else if (soilMoisture > 70) moistureStatus = '⚠️ Alto';
+                                    document.getElementById('soilStatus').textContent = moistureStatus;
+
+                                    const html = `
+                    <div class="soil-stats">
+                        <div class="soil-stat">
+                            <div class="soil-icon">🌡️</div>
+                            <div class="soil-value">${soilTemp}°C</div>
+                            <div class="soil-label">Temperatura (10cm)</div>
+                        </div>
+                        <div class="soil-stat">
+                            <div class="soil-icon">💧</div>
+                            <div class="soil-value">${soilMoisture}%</div>
+                            <div class="soil-label">Humedad</div>
+                        </div>
+                    </div>
+                    <div style="margin-top: 1.5rem;">
+                        <div class="limit-label">Estado del suelo</div>
+                        <div class="index-bar" style="background: linear-gradient(90deg, #8B4513, #10b981, #3b82f6);">
+                            <div class="index-marker" style="left: ${Math.min(100, Math.max(0, (soilMoisture - 10) / 0.6))}%"></div>
+                        </div>
+                        <div class="index-labels">
+                            <span>Seco</span>
+                            <span>Óptimo</span>
+                            <span>Saturado</span>
+                        </div>
+                    </div>`;
+
+                                    document.getElementById('soilContent').innerHTML = html;
+                                    return;
+                                } catch (localError) {
+                                    console.log('API local no disponible, usando API externa:', localError);
+                                    
+                                    // Fallback a API externa
+                                    const response = await fetch(
+                                        `https://api.agromonitoring.com/agro/1.0/soil?polyid=${polygonId}&appid=${apiKey}`
+                                    );
+                                    data = await response.json();
+
+                                    const soilTemp = (data.t10 - 273.15).toFixed(1);
+                                    const soilMoisture = (data.moisture * 100).toFixed(0);
 
                                 // Update quick stat
                                 document.getElementById('soilMoistureValue').textContent = `${soilMoisture}%`;
@@ -1930,19 +2149,19 @@
 
                         async function loadNDVI() {
                             try {
-                                const end = Math.floor(Date.now() / 1000);
-                                const start = end - (30 * 24 * 60 * 60);
-
-                                const response = await fetch(
-                                    `https://api.agromonitoring.com/agro/1.0/image/search?start=${start}&end=${end}&polyid=${polygonId}&appid=${apiKey}`
-                                );
-                                const images = await response.json();
-
-                                if (images.length > 0 && images[0].stats.ndvi) {
-                                    const statsResponse = await fetch(images[0].stats.ndvi);
-                                    const stats = await statsResponse.json();
-
-                                    const ndviValue = stats.mean || 0;
+                                // Usar API local primero, si falla usar API externa
+                                let data;
+                                try {
+                                    const response = await fetch(`${CONFIG.local_api_url}/api/ndvi`);
+                                    data = await response.json();
+                                    
+                                    // Verificar si la API local tiene datos
+                                    if (data.error || data.message) {
+                                        throw new Error('API local no tiene datos');
+                                    }
+                                    
+                                    // Usar datos de la API local
+                                    const ndviValue = data.ndvi_mean || 0;
                                     document.getElementById('ndviValue').textContent = ndviValue.toFixed(3);
 
                                     let status = 'Excelente';
@@ -1952,9 +2171,36 @@
                                     else if (ndviValue < 0.8) status = 'Muy bueno';
 
                                     document.getElementById('ndviStatus').textContent = status;
-                                } else {
-                                    document.getElementById('ndviValue').textContent = 'N/A';
-                                    document.getElementById('ndviStatus').textContent = 'Sin datos recientes';
+                                } catch (localError) {
+                                    console.log('API local no disponible, usando API externa:', localError);
+                                    
+                                    // Fallback a API externa
+                                    const end = Math.floor(Date.now() / 1000);
+                                    const start = end - (30 * 24 * 60 * 60);
+
+                                    const response = await fetch(
+                                        `https://api.agromonitoring.com/agro/1.0/image/search?start=${start}&end=${end}&polyid=${polygonId}&appid=${apiKey}`
+                                    );
+                                    const images = await response.json();
+
+                                    if (images.length > 0 && images[0].stats.ndvi) {
+                                        const statsResponse = await fetch(images[0].stats.ndvi);
+                                        const stats = await statsResponse.json();
+
+                                        const ndviValue = stats.mean || 0;
+                                        document.getElementById('ndviValue').textContent = ndviValue.toFixed(3);
+
+                                        let status = 'Excelente';
+                                        if (ndviValue < 0.2) status = '⚠️ Bajo';
+                                        else if (ndviValue < 0.4) status = 'Moderado';
+                                        else if (ndviValue < 0.6) status = 'Saludable';
+                                        else if (ndviValue < 0.8) status = 'Muy bueno';
+
+                                        document.getElementById('ndviStatus').textContent = status;
+                                    } else {
+                                        document.getElementById('ndviValue').textContent = 'N/A';
+                                        document.getElementById('ndviStatus').textContent = 'Sin datos recientes';
+                                    }
                                 }
 
                             } catch (error) {
@@ -1965,36 +2211,70 @@
 
                         async function loadNDVIHistory() {
                             try {
-                                const end = Math.floor(Date.now() / 1000);
-                                const start = end - (30 * 24 * 60 * 60);
+                                // Usar API local primero, si falla usar API externa
+                                let data;
+                                try {
+                                    const response = await fetch(`${CONFIG.local_api_url}/api/ndvi/history`);
+                                    data = await response.json();
+                                    
+                                    // Verificar si la API local tiene datos
+                                    if (data.error || data.message) {
+                                        throw new Error('API local no tiene datos');
+                                    }
+                                    
+                                    // Usar datos de la API local
+                                    const ndviData = [];
+                                    const labels = [];
 
-                                const response = await fetch(
-                                    `https://api.agromonitoring.com/agro/1.0/image/search?start=${start}&end=${end}&polyid=${polygonId}&appid=${apiKey}`
-                                );
-                                const images = await response.json();
+                                    if (data.data && data.data.length > 0) {
+                                        data.data.forEach(item => {
+                                            if (item.ndvi_mean !== null) {
+                                                ndviData.push(item.ndvi_mean);
+                                                labels.push(new Date(item.timestamp).toLocaleDateString('es-PA', {
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                }));
+                                            }
+                                        });
+                                    }
 
-                                const ndviData = [];
-                                const labels = [];
+                                    ndviData.reverse();
+                                    labels.reverse();
+                                } catch (localError) {
+                                    console.log('API local no disponible, usando API externa:', localError);
+                                    
+                                    // Fallback a API externa
+                                    const end = Math.floor(Date.now() / 1000);
+                                    const start = end - (30 * 24 * 60 * 60);
 
-                                for (const image of images) {
-                                    if (image.stats && image.stats.ndvi) {
-                                        try {
-                                            const statsResponse = await fetch(image.stats.ndvi);
-                                            const stats = await statsResponse.json();
+                                    const response = await fetch(
+                                        `https://api.agromonitoring.com/agro/1.0/image/search?start=${start}&end=${end}&polyid=${polygonId}&appid=${apiKey}`
+                                    );
+                                    const images = await response.json();
 
-                                            ndviData.push(stats.mean || 0);
-                                            labels.push(new Date(image.dt * 1000).toLocaleDateString('es-PA', {
-                                                month: 'short',
-                                                day: 'numeric'
-                                            }));
-                                        } catch (e) {
-                                            console.log('Error getting stats for image');
+                                    const ndviData = [];
+                                    const labels = [];
+
+                                    for (const image of images) {
+                                        if (image.stats && image.stats.ndvi) {
+                                            try {
+                                                const statsResponse = await fetch(image.stats.ndvi);
+                                                const stats = await statsResponse.json();
+
+                                                ndviData.push(stats.mean || 0);
+                                                labels.push(new Date(image.dt * 1000).toLocaleDateString('es-PA', {
+                                                    month: 'short',
+                                                    day: 'numeric'
+                                                }));
+                                            } catch (e) {
+                                                console.log('Error getting stats for image');
+                                            }
                                         }
                                     }
-                                }
 
-                                ndviData.reverse();
-                                labels.reverse();
+                                    ndviData.reverse();
+                                    labels.reverse();
+                                }
 
                                 const ctx = document.getElementById('ndviChart').getContext('2d');
 
@@ -2623,6 +2903,252 @@
 
                             } catch (error) {
                                 console.error('Error loading OpenWeather comparison:', error);
+                            }
+                        }
+
+                        // Load NDVI Daily Statistics
+                        async function loadNDVIDailyStats() {
+                            try {
+                                const response = await fetch(`${CONFIG.local_api_url}/api/ndvi/daily`);
+                                const data = await response.json();
+
+                                if (data.error || data.message) {
+                                    throw new Error('API no tiene datos');
+                                }
+
+                                const html = `
+                    <div class="weather-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        ${data.data.slice(0, 7).map(item => `
+                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                                <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                    ${new Date(item.date).toLocaleDateString('es-PA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                    <span style="color: var(--accent-green);">Promedio:</span>
+                                    <span>${item.ndvi_avg ? item.ndvi_avg.toFixed(3) : 'N/A'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                    <span style="color: var(--accent-blue);">Máximo:</span>
+                                    <span>${item.ndvi_max ? item.ndvi_max.toFixed(3) : 'N/A'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--accent-yellow);">Mínimo:</span>
+                                    <span>${item.ndvi_min ? item.ndvi_min.toFixed(3) : 'N/A'}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+
+                                document.getElementById('ndviDailyContent').innerHTML = html;
+                                document.getElementById('ndviDailyUpdate').textContent =
+                                    new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+                            } catch (error) {
+                                console.error('Error loading NDVI daily stats:', error);
+                                document.getElementById('ndviDailyContent').innerHTML =
+                                    '<p style="color: var(--accent-red);">Error cargando estadísticas diarias de NDVI</p>';
+                            }
+                        }
+
+                        // Load Dew Point Daily
+                        async function loadDewPointDaily() {
+                            try {
+                                const response = await fetch(`${CONFIG.local_api_url}/api/weather/dewpoint`);
+                                const data = await response.json();
+
+                                if (data.error || data.message) {
+                                    throw new Error('API no tiene datos');
+                                }
+
+                                const html = `
+                    <div class="weather-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
+                        ${data.data.slice(0, 7).map(item => `
+                            <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                                <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                    ${new Date(item.date).toLocaleDateString('es-PA', { weekday: 'short', day: 'numeric', month: 'short' })}
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                    <span style="color: var(--accent-green);">Promedio:</span>
+                                    <span>${item.dew_point_avg ? item.dew_point_avg.toFixed(1) + '°C' : 'N/A'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem;">
+                                    <span style="color: var(--accent-blue);">Máximo:</span>
+                                    <span>${item.dew_point_max ? item.dew_point_max.toFixed(1) + '°C' : 'N/A'}</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between;">
+                                    <span style="color: var(--accent-yellow);">Mínimo:</span>
+                                    <span>${item.dew_point_min ? item.dew_point_min.toFixed(1) + '°C' : 'N/A'}</span>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>`;
+
+                                document.getElementById('dewpointDailyContent').innerHTML = html;
+                                document.getElementById('dewpointDailyUpdate').textContent =
+                                    new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+                            } catch (error) {
+                                console.error('Error loading dew point daily:', error);
+                                document.getElementById('dewpointDailyContent').innerHTML =
+                                    '<p style="color: var(--accent-red);">Error cargando punto de rocío diario</p>';
+                            }
+                        }
+
+                        // Load Soil-Weather Correlation
+                        async function loadSoilWeatherCorrelation() {
+                            try {
+                                const response = await fetch(`${CONFIG.local_api_url}/api/soil/weather/correlation`);
+                                const data = await response.json();
+
+                                if (data.error || data.message) {
+                                    throw new Error('API no tiene datos');
+                                }
+
+                                const correlations = data.correlations;
+                                const html = `
+                    <div class="weather-grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem;">
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Humedad Suelo vs Temperatura Aire
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${correlations.soil_moisture_vs_air_temp > 0.5 ? 'var(--accent-green)' : correlations.soil_moisture_vs_air_temp < -0.5 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${correlations.soil_moisture_vs_air_temp ? correlations.soil_moisture_vs_air_temp.toFixed(3) : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.85rem;">
+                                ${correlations.soil_moisture_vs_air_temp > 0.5 ? 'Correlación fuerte positiva' : correlations.soil_moisture_vs_air_temp < -0.5 ? 'Correlación fuerte negativa' : 'Correlación débil'}
+                            </div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Temperatura Suelo vs Temperatura Aire
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${correlations.soil_temp_vs_air_temp > 0.5 ? 'var(--accent-green)' : correlations.soil_temp_vs_air_temp < -0.5 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${correlations.soil_temp_vs_air_temp ? correlations.soil_temp_vs_air_temp.toFixed(3) : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.85rem;">
+                                ${correlations.soil_temp_vs_air_temp > 0.5 ? 'Correlación fuerte positiva' : correlations.soil_temp_vs_air_temp < -0.5 ? 'Correlación fuerte negativa' : 'Correlación débil'}
+                            </div>
+                        </div>
+                        <div style="background: var(--bg-secondary); padding: 1rem; border-radius: 8px;">
+                            <div style="color: var(--text-secondary); font-size: 0.85rem; margin-bottom: 0.5rem;">
+                                Humedad Suelo vs Humedad Aire
+                            </div>
+                            <div style="font-size: 1.5rem; font-weight: bold; color: ${correlations.soil_moisture_vs_air_humidity > 0.5 ? 'var(--accent-green)' : correlations.soil_moisture_vs_air_humidity < -0.5 ? 'var(--accent-red)' : 'var(--accent-yellow)'};">
+                                ${correlations.soil_moisture_vs_air_humidity ? correlations.soil_moisture_vs_air_humidity.toFixed(3) : 'N/A'}
+                            </div>
+                            <div style="color: var(--text-muted); font-size: 0.85rem;">
+                                ${correlations.soil_moisture_vs_air_humidity > 0.5 ? 'Correlación fuerte positiva' : correlations.soil_moisture_vs_air_humidity < -0.5 ? 'Correlación fuerte negativa' : 'Correlación débil'}
+                            </div>
+                        </div>
+                    </div>`;
+
+                                document.getElementById('correlationContent').innerHTML = html;
+                                document.getElementById('correlationUpdate').textContent =
+                                    new Date().toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+
+                                // Load correlation chart
+                                await loadSoilWeatherCorrelationChart(data.data);
+
+                            } catch (error) {
+                                console.error('Error loading soil-weather correlation:', error);
+                                document.getElementById('correlationContent').innerHTML =
+                                    '<p style="color: var(--accent-red);">Error cargando correlación suelo-clima</p>';
+                            }
+                        }
+
+                        // Load Soil-Weather Correlation Chart
+                        async function loadSoilWeatherCorrelationChart(correlationData) {
+                            try {
+                                const ctx = document.getElementById('soilWeatherCorrelationChart').getContext('2d');
+
+                                if (window.soilWeatherCorrelationChart && typeof window.soilWeatherCorrelationChart.destroy === 'function') {
+                                    window.soilWeatherCorrelationChart.destroy();
+                                }
+
+                                // Prepare data for chart
+                                const labels = correlationData.slice(0, 24).map(item => 
+                                    new Date(item.date).toLocaleDateString('es-PA', { weekday: 'short', day: 'numeric', hour: '2-digit' })
+                                );
+                                const soilMoisture = correlationData.slice(0, 24).map(item => item.soil_moisture_percent);
+                                const airTemp = correlationData.slice(0, 24).map(item => item.air_temp_c);
+
+                                window.soilWeatherCorrelationChart = new Chart(ctx, {
+                                    type: 'line',
+                                    data: {
+                                        labels: labels,
+                                        datasets: [
+                                            {
+                                                label: 'Humedad del Suelo (%)',
+                                                data: soilMoisture,
+                                                borderColor: '#3b82f6',
+                                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                                borderWidth: 3,
+                                                fill: true,
+                                                tension: 0.3,
+                                                yAxisID: 'y'
+                                            },
+                                            {
+                                                label: 'Temperatura del Aire (°C)',
+                                                data: airTemp,
+                                                borderColor: '#ef4444',
+                                                backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                                                borderWidth: 3,
+                                                fill: true,
+                                                tension: 0.3,
+                                                yAxisID: 'y1'
+                                            }
+                                        ]
+                                    },
+                                    options: {
+                                        responsive: true,
+                                        maintainAspectRatio: false,
+                                        interaction: {
+                                            mode: 'index',
+                                            intersect: false
+                                        },
+                                        plugins: {
+                                            legend: {
+                                                labels: { color: '#9ca3af' }
+                                            },
+                                            tooltip: {
+                                                backgroundColor: 'rgba(17, 24, 39, 0.9)',
+                                                titleColor: '#f9fafb',
+                                                bodyColor: '#9ca3af'
+                                            }
+                                        },
+                                        scales: {
+                                            y: {
+                                                type: 'linear',
+                                                position: 'left',
+                                                title: {
+                                                    display: true,
+                                                    text: 'Humedad del Suelo (%)',
+                                                    color: '#3b82f6'
+                                                },
+                                                ticks: { color: '#3b82f6' },
+                                                grid: { color: 'rgba(255,255,255,0.05)' }
+                                            },
+                                            y1: {
+                                                type: 'linear',
+                                                position: 'right',
+                                                title: {
+                                                    display: true,
+                                                    text: 'Temperatura del Aire (°C)',
+                                                    color: '#ef4444'
+                                                },
+                                                ticks: { color: '#ef4444' },
+                                                grid: { display: false }
+                                            },
+                                            x: {
+                                                ticks: { color: '#9ca3af' },
+                                                grid: { display: false }
+                                            }
+                                        }
+                                    }
+                                });
+
+                            } catch (error) {
+                                console.error('Error loading correlation chart:', error);
                             }
                         }
                     </script>

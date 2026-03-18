@@ -127,3 +127,4 @@ timestamp,polygon_id,ndvi_mean,ndwi_mean,ndsi_mean,ndsi_interp,map_rgb,map_ndvi,
 2026-03-17 15:51:40,los_valles_veraguas,0.6002497673034668,-0.5889427661895752,-0.10861875116825104,Vegetación cubriendo,data/maps/farm_rgb_20260317.png,data/maps/farm_ndvi_20260317.png,29.52,29.52,29.52,47,muy nuboso
 2026-03-17 23:20:27,los_valles_veraguas,0.5949738025665283,-0.5932232737541199,-0.09699155390262604,Vegetación cubriendo,data/maps/farm_rgb_20260317.png,data/maps/farm_ndvi_20260317.png,23.74,23.74,23.74,85,lluvia moderada
 2026-03-18 15:58:20,los_valles_veraguas,0.5949738025665283,-0.5932232737541199,-0.09699155390262604,Vegetación cubriendo,data/maps/farm_rgb_20260318.png,data/maps/farm_ndvi_20260318.png,28.61,28.61,28.61,50,cielo claro
+2026-03-18 23:19:54,los_valles_veraguas,0.5949738025665283,-0.5932232737541199,-0.09699155390262604,Vegetación cubriendo,data/maps/farm_rgb_20260318.png,data/maps/farm_ndvi_20260318.png,24.32,24.32,24.32,73,lluvia ligera
